@@ -68,6 +68,7 @@ services:
       retries: 3
     volumes:
       - mysql:/var/lib/mysql
+      - ./server/init/gva.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       network:
         ipv4_address: 177.7.0.13
