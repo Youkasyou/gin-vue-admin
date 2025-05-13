@@ -35,7 +35,7 @@ func RunWindowsServer() {
 
 	Router := initialize.Routers()
 
-	address := fmt.Sprintf(":%d", global.GVA_CONFIG.System.Addr)
+	address := fmt.Sprintf("0.0.0.0:%d", global.GVA_CONFIG.System.Addr)
 	s := initServer(address, Router)
 
 	global.GVA_LOG.Info("server run success on ", zap.String("address", address))
