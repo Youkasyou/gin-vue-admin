@@ -55,10 +55,10 @@ func TestGetImage(t *testing.T) {
 
 				mock.ExpectQuery(`SELECT JSON_ARRAYAGG\(`).
 					WithArgs("123").
-					WillReturnRows(sqlmock.NewRows([]string{"images"}).AddRow(`[
+					WillReturnRows(sqlmock.NewRows([]string{"images"}).AddRow([]byte(`[
                         {"id":1,"main_image_url":"img1.jpg","thumbnail_url":"thumb1.jpg","alt_text":"alt1","sort_order":1},
                         {"id":2,"main_image_url":"img2.jpg","thumbnail_url":"thumb2.jpg","alt_text":"alt2","sort_order":2}
-                    ]`))
+                    ]`)))
 			},
 			wantErr:    nil,
 			wantImages: 2,
