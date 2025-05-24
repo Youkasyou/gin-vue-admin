@@ -10,6 +10,7 @@ type ApiGroup struct {
 	ShippingApi
 	PaymentApi
 	OrdersApi
+	CategoryApi
 }
 
 var (
@@ -20,4 +21,5 @@ var (
 	shippingService  = service.ServiceGroupApp.ProductsServiceGroup.ShippingService
 	paymentService   = service.ServiceGroupApp.ProductsServiceGroup.PaymentService
 	ordersService    = service.ServiceGroupApp.ProductsServiceGroup.OrdersService
+	categoryService  = service.ServiceGroupApp.ProductsServiceGroup.CategoryService
 )

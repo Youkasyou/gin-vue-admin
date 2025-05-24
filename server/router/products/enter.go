@@ -11,7 +11,8 @@ type RouterGroup struct {
 	CartRouter
 	ShippingRouter
 	PaymentRouter
-	OredrsRouter
+	OrdersRouter
+	CategoryRouter
 }
 
 var (
@@ -22,4 +23,5 @@ var (
 	shippingApi  = api.ApiGroupApp.ProductsApiGroup.ShippingApi
 	paymentApi   = api.ApiGroupApp.ProductsApiGroup.PaymentApi
 	ordersApi    = api.ApiGroupApp.ProductsApiGroup.OrdersApi
+	categoryApi  = api.ApiGroupApp.ProductsApiGroup.CategoryApi
 )

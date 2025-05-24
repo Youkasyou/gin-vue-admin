@@ -71,19 +71,32 @@ captcha:
   open-captcha: 0 # 0代表一直开启，大于0代表限制次数
   open-captcha-timeout: 3600 # open-captcha大于0时才生效
 
-# mysql connect configuration
-# 未初始化之前请勿手动修改数据库信息！！！如果一定要手动初始化请看（https://gin-vue-admin.com/docs/first_master）
+# # mysql connect configuration
+# # 未初始化之前请勿手动修改数据库信息！！！如果一定要手动初始化请看（https://gin-vue-admin.com/docs/first_master）
+# mysql:
+#   path: ""
+#   port: ""
+#   config: ""
+#   db-name: ""
+#   username: ""
+#   password: ""
+#   max-idle-conns: 10
+#   max-open-conns: 100
+#   log-mode: ""
+#   log-zap: false
+
 mysql:
-  path: ""
-  port: ""
-  config: ""
-  db-name: ""
-  username: ""
-  password: ""
+  path: 192.168.0.52
+  port: 3306
+  config: charset=utf8mb4&parseTime=True&loc=Local
+  db-name: gva
+  username: root
+  password: 80813265
   max-idle-conns: 10
   max-open-conns: 100
-  log-mode: ""
-  log-zap: false
+  log-mode: error
+  log-zap: true
+
 
 # pgsql connect configuration
 # 未初始化之前请勿手动修改数据库信息！！！如果一定要手动初始化请看（https://gin-vue-admin.com/docs/first_master）
@@ -218,3 +231,8 @@ cors:
       allow-methods: GET, POST
       expose-headers: Content-Length, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Content-Type
       allow-credentials: true # 布尔值
+
+es:
+  host: http://es7:9200
+  username: ""
+  password: ""

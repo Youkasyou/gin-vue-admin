@@ -46,7 +46,7 @@ func (s *ShippingApi) AddAddress(c *gin.Context) {
 
 	isValid, _ := regexp.MatchString(`^\d{3}-\d{4}$`, requestAddr.PostalCode)
 	if !isValid {
-		response.BadRequest("不正な郵便番号形式です。", c)
+		response.InvalidParam("不正な郵便番号形式です。", c)
 		return
 	}
 
@@ -70,7 +70,7 @@ func (s *ShippingApi) SetAddress(c *gin.Context) {
 	addrIdstr := c.Param("addressId")
 	addrId, err := strconv.Atoi(addrIdstr)
 	if err != nil {
-		response.BadRequest("addreIdパラメータは数値で指定してください。", c)
+		response.InvalidParam("addreIdパラメータは数値で指定してください。", c)
 		return
 	}
 	var requestAddr dto.ShippingAddressInput
@@ -82,10 +82,12 @@ func (s *ShippingApi) SetAddress(c *gin.Context) {
 	userId := utils.GetUserID(c)
 	resAddr, err := shippingService.SetAddress(userId, uint64(addrId), requestAddr)
 	if err != nil {
-		if err.Error() == "not found" {
-			response.NotFound("addressIdが見つかりません。", c)
+		if appErr, ok := err.(*response.AppError); ok {
+			response.JSONError(c, appErr)
 			return
 		}
+		response.JSONError(c, response.ErrInternal)
+		return
 	}
 	response.OkWithDetailed(resAddr, "編集成功", c)
 }
@@ -103,16 +105,18 @@ func (s *ShippingApi) DeleteAddress(c *gin.Context) {
 	addrIdstr := c.Param("addressId")
 	addrId, err := strconv.Atoi(addrIdstr)
 	if err != nil {
-		response.BadRequest("addreIdパラメータは数値で指定してください。", c)
+		response.InvalidParam("addreIdパラメータは数値で指定してください。", c)
 		return
 	}
 	userId := utils.GetUserID(c)
 	err = shippingService.DeleteAddress(userId, uint64(addrId))
 	if err != nil {
-		if err.Error() == "ErrCartItemNotFound" {
-			response.NotFound("addressId不存在 ", c)
+		if appErr, ok := err.(*response.AppError); ok {
+			response.JSONError(c, appErr)
 			return
 		}
+		response.JSONError(c, response.ErrInternal)
+		return
 	}
 	response.OkWithMessage("住所を削除しました", c)
 }

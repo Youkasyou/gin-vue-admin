@@ -31,6 +31,15 @@ const routes = [
     },
     component: () => import('@/view/error/index.vue')
   },
+  {
+  path: '/pay-test',
+  name: 'PayTest',
+  component: () => import('@/view/test/PayTest.vue'),
+  meta: {
+    title: '支付测试',
+    icon: 'credit-card'
+  }
+},
 ]
 
 const router = createRouter({

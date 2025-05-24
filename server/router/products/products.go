@@ -14,5 +14,6 @@ func (s *ProductsRouter) InitProductsRouter(Router *gin.RouterGroup) {
 		productsRouter.GET("getImage/:skuId/images", productsApi.GetImage)
 		productsRouter.GET("getRelated/:productCode/related", productsApi.GetRelated)
 		productsRouter.GET("getCoordinates/:productCode/coordinates", productsApi.GetCoordinates)
+		productsRouter.GET("search", productsApi.Search)
 	}
 }

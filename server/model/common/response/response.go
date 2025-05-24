@@ -61,36 +61,3 @@ func NoAuth(message string, c *gin.Context) {
 func FailWithDetailed(data interface{}, message string, c *gin.Context) {
 	Result(ERROR, data, message, c)
 }
-
-type ApiResponse struct {
-	Code    interface{} `json:"code"`
-	Message string      `json:"msg"`
-	Data    interface{} `json:"data"`
-}
-
-func BadRequest(msg string, c *gin.Context) {
-
-	c.JSON(http.StatusBadRequest, ApiResponse{
-		Code:    "INVALID_PARAMETER",
-		Message: msg,
-		Data:    nil,
-	})
-}
-
-func NotFound(msg string, c *gin.Context) {
-
-	c.JSON(http.StatusNotFound, ApiResponse{
-		Code:    "NOT_FOUND",
-		Message: msg,
-		Data:    nil,
-	})
-}
-
-func Unprocessable(msg string, c *gin.Context) {
-
-	c.JSON(http.StatusUnprocessableEntity, ApiResponse{
-		Code:    "INSUFFICIENT_STOCK",
-		Message: msg,
-		Data:    nil,
-	})
-}

@@ -51,6 +51,8 @@ require (
 	gorm.io/gorm v1.25.12
 )
 
+require github.com/DATA-DOG/go-sqlmock v1.5.2 // indirect
+
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/BurntSushi/toml v1.4.0 // indirect
@@ -122,7 +124,9 @@ require (
 	github.com/mozillazg/go-httpheader v0.4.0 // indirect
 	github.com/ncruces/go-strftime v0.1.9 // indirect
 	github.com/nwaples/rardecode/v2 v2.0.1 // indirect
+	github.com/olivere/elastic/v7 v7.0.32
 	github.com/otiai10/mint v1.6.3 // indirect
+	github.com/payjp/payjp-go v0.3.0
 	github.com/pelletier/go-toml/v2 v2.2.3 // indirect
 	github.com/pierrec/lz4/v4 v4.1.22 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect

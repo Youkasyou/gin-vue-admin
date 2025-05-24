@@ -103,6 +103,7 @@ func Routers() *gin.Engine {
 		productsRouter.InitShippingRouter(PrivateGroup)
 		productsRouter.InitPaymentRouter(PublicGroup)
 		productsRouter.InitOrdersRouter(PrivateGroup)
+		productsRouter.InitCategoryRouter(PublicGroup)
 	}
 
 	//插件路由安装

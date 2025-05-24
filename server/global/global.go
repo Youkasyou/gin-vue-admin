@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/gin-gonic/gin"
+	"github.com/olivere/elastic/v7"
 	"github.com/qiniu/qmgo"
 
 	"github.com/flipped-aurora/gin-vue-admin/server/utils/timer"
@@ -37,6 +38,7 @@ var (
 	GVA_ACTIVE_DBNAME       *string
 	BlackCache              local_cache.Cache
 	lock                    sync.RWMutex
+	GVA_ES                  *elastic.Client
 )
 
 // GetGlobalDBByDBName 通过名称获取db list中的db

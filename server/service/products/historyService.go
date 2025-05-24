@@ -1,7 +1,6 @@
 package products
 
 import (
-	"errors"
 	"fmt"
 	"math"
 	"sort"
@@ -9,6 +8,7 @@ import (
 
 	"github.com/flipped-aurora/gin-vue-admin/server/global"
 	"github.com/flipped-aurora/gin-vue-admin/server/model/common/dto"
+	"github.com/flipped-aurora/gin-vue-admin/server/model/common/response"
 	"github.com/flipped-aurora/gin-vue-admin/server/model/products"
 )
 
@@ -24,7 +24,7 @@ func (historyService *HistoryService) AddHistory(id uint, skuId string) (err err
 	}
 	if !EXISTS {
 		fmt.Println("未找到该sku")
-		return errors.New("not found")
+		return response.ErrNotFound
 	}
 
 	err = global.GVA_DB.Table("user_viewed_skus").

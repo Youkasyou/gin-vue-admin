@@ -21,7 +21,7 @@ services:
     container_name: gva-web
     restart: always
     ports:
-      - '8080:8080'
+      - '8080:80'
     depends_on:
       - server
     command: [ 'nginx-debug', '-g', 'daemon off;' ]
@@ -57,7 +57,7 @@ services:
     ports:
       - "13306:3306"  # host物理直接映射端口为13306
     environment:
-      #MYSQL_ROOT_PASSWORD: 'Aa@6447985' # root管理员用户密码
+      MYSQL_ROOT_PASSWORD: 'Aa@6447985' # root管理员用户密码
       MYSQL_DATABASE: 'qmPlus' # 初始化启动时要创建的数据库的名称
       MYSQL_USER: 'gva'
       MYSQL_PASSWORD: 'Aa@6447985'
@@ -68,7 +68,7 @@ services:
       retries: 3
     volumes:
       - mysql:/var/lib/mysql
-      - ./server/init/gva.sql:/docker-entrypoint-initdb.d/init.sql
+      - ../../server/init/gva.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       network:
         ipv4_address: 177.7.0.13
@@ -89,3 +89,21 @@ services:
     networks:
       network:
         ipv4_address: 177.7.0.14
+
+  es7:
+      image: docker.elastic.co/elasticsearch/elasticsearch:7.17.10
+      container_name: es7
+      environment:
+        - discovery.type=single-node
+        - bootstrap.memory_lock=true
+        - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      ulimits:
+        memlock:
+          soft: -1
+          hard: -1
+      ports:
+        - "9200:9200"
+        - "9300:9300"
+      networks:
+        network:
+          ipv4_address: 177.7.0.15

@@ -8,4 +8,5 @@ type ServiceGroup struct {
 	ShippingService
 	PaymentService
 	OrdersService
+	CategoryService
 }

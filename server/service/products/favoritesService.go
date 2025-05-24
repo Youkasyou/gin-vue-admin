@@ -1,13 +1,13 @@
 package products
 
 import (
-	"errors"
 	"fmt"
 	"math"
 	"sort"
 
 	"github.com/flipped-aurora/gin-vue-admin/server/global"
 	"github.com/flipped-aurora/gin-vue-admin/server/model/common/dto"
+	"github.com/flipped-aurora/gin-vue-admin/server/model/common/response"
 	"github.com/flipped-aurora/gin-vue-admin/server/model/products"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
@@ -155,7 +155,7 @@ func (favoritesService *FavoritesService) AddFavoriteSku(id uint, skuId string) 
 	}
 	if !EXISTS {
 		fmt.Println("未找到该sku")
-		return errors.New("not found")
+		return response.ErrNotFound
 	}
 
 	err = global.GVA_DB.Exec(`INSERT INTO user_favorite_skus(user_id,sku_id,created_at) 
@@ -177,12 +177,12 @@ func (favoritesService *FavoritesService) DeleteFavoriteSku(id uint, skuId strin
 	}
 	if !EXISTS {
 		fmt.Println("未找到该sku")
-		return errors.New("not found sku")
+		return response.ErrNotFound
 	}
 
 	result := global.GVA_DB.Exec(`DELETE FROM user_favorite_skus WHERE user_id = ? AND sku_id = ?`, id, skuId)
 	if result.RowsAffected == 0 {
-		return errors.New("not found data")
+		return response.ErrNotFound
 	}
 
 	return

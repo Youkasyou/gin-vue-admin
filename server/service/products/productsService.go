@@ -5,12 +5,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
+	"math"
 	"sort"
 	"time"
 
 	"github.com/flipped-aurora/gin-vue-admin/server/global"
 	"github.com/flipped-aurora/gin-vue-admin/server/model/common/dto"
+	"github.com/flipped-aurora/gin-vue-admin/server/model/common/response"
 	"github.com/flipped-aurora/gin-vue-admin/server/model/products"
+	"github.com/olivere/elastic/v7"
 	"go.uber.org/zap"
 )
 
@@ -336,7 +340,7 @@ func (productsService *ProductsService) GetReviews(productCode string, page int,
 	}
 	if productId == "" {
 		fmt.Println("未找到该product")
-		return nil, errors.New("not found")
+		return nil, response.ErrNotFound
 	}
 
 	offset := (page - 1) * limit
@@ -462,7 +466,7 @@ func (productsService *ProductsService) GetQA(productCode string, page int, limi
 	}
 	if productId == "" {
 		fmt.Println("未找到该product")
-		return nil, errors.New("not found")
+		return nil, response.ErrNotFound
 	}
 
 	offset := (page - 1) * limit
@@ -553,10 +557,11 @@ func (productsService *ProductsService) GetImage(skuId string) (res *dto.SKUImag
 	}
 	if !EXISTS {
 		fmt.Println("未找到该sku")
-		return nil, errors.New("not found")
+		return nil, response.ErrNotFound
 	}
 
-	imageQuery := `
+	sKUImageListProjection := &products.SKUImageListProjection{}
+	err = global.GVA_DB.Raw(`
 		SELECT JSON_ARRAYAGG(
 			JSON_OBJECT(
 				'id',id,
@@ -569,9 +574,7 @@ func (productsService *ProductsService) GetImage(skuId string) (res *dto.SKUImag
 		FROM sku_images
 		WHERE sku_id = ?
 		ORDER BY sort_order ASC
-	`
-	sKUImageListProjection := &products.SKUImageListProjection{}
-	err = global.GVA_DB.Raw(imageQuery, skuId).Scan(&sKUImageListProjection).Error
+	`, skuId).Scan(&sKUImageListProjection).Error
 	if err != nil {
 		fmt.Println("未找到sku")
 		return
@@ -689,7 +692,7 @@ func (productsService *ProductsService) GetCoordinates(productCode string, limit
 	}
 	if productId == "" {
 		fmt.Println("未找到该product")
-		return nil, errors.New("not found")
+		return nil, response.ErrNotFound
 	}
 
 	entity := []dto.CoordinateSetTeaserInfo{}
@@ -715,4 +718,182 @@ func (productsService *ProductsService) GetCoordinates(productCode string, limit
 	list.Coordinates = list.Coordinates[:limit]
 
 	return list, err
+}
+
+func InitAllProductsToES() error {
+	var products []dto.SearchedProductEntity
+	err := global.GVA_DB.Table("products p").
+		Select(`max(price) AS highest_price, min(price) as lowest_price,c.id as category_id,
+		max(case when pri.price_type_id = 2 then true else false end) as is_on_sale,p.created_at,
+		si.thumbnail_url as thumbnail_image_url,c.name as category_name,p.description,
+		p.id as product_id,product_code,p.name as product_name,average_rating,review_count`).
+		Joins("left join product_skus ps on p.id = ps.product_id").
+		Joins("left join prices pri on ps.id = pri.sku_id").
+		Joins("left join sku_images si on si.sku_id = p.default_sku_id").
+		Joins("left join review_summaries rs on p.id = rs.product_id").
+		Joins("left join categories c on p.category_id = c.id").
+		Group(`si.thumbnail_url ,c.name ,p.id ,product_code,p.name ,c.id,p.created_at,
+		average_rating,review_count,p.description`).
+		Scan(&products).Error
+	if err != nil {
+		return err
+	}
+
+	for _, product := range products {
+		_, err := global.GVA_ES.Index().
+			Index("products").
+			Id(product.ProductID).
+			BodyJson(product).
+			Do(context.Background())
+		if err != nil {
+			log.Printf("商品 %s 写入 ES 失败: %v", product.ProductID, err)
+		}
+	}
+	return nil
+}
+
+func (productsService *ProductsService) Search(keyword string, categoryId int, page int, limit int, sort string) (res *dto.ProductSearchResponse, err error) {
+	offset := (page - 1) * limit
+	var query *elastic.BoolQuery
+	// 搜索 ES
+	if categoryId != 0 {
+		query = elastic.NewBoolQuery().
+			Must(elastic.NewMultiMatchQuery(keyword, "product_name", "description")).
+			Filter(elastic.NewTermQuery("category_id", categoryId))
+	} else {
+		query = elastic.NewBoolQuery().
+			Must(elastic.NewMultiMatchQuery(keyword, "product_name", "description"))
+	}
+	searchService := global.GVA_ES.Search().Index("products").Query(query)
+
+	switch sort {
+	case "relevance":
+	case "price_asc":
+		searchService = searchService.Sort("highest_price", true)
+	case "price_desc":
+		searchService = searchService.Sort("highest_price", false)
+	case "newest":
+		searchService = searchService.Sort("created_at", false)
+	}
+
+	result, err := searchService.From(offset).Size(limit).Do(context.Background())
+
+	// 如果查询出错，且是索引不存在的错误，则初始化 ES 索引
+	if err != nil {
+		// 判断是否是 index_not_found_exception
+		if elasticErr, ok := err.(*elastic.Error); ok && elasticErr.Details != nil &&
+			elasticErr.Details.Type == "index_not_found_exception" {
+
+			log.Println("ES 索引不存在，尝试初始化 products 索引...")
+			if initErr := InitAllProductsToES(); initErr != nil {
+				log.Printf("ES 初始化失败: %v", initErr)
+				return nil, initErr
+			}
+
+			// 初始化后重试查询
+			result, err = searchService.From(offset).Size(limit).Do(context.Background())
+		}
+	}
+
+	if err != nil {
+		log.Println("ES 查询失败:", err)
+		return nil, err
+	}
+
+	entity := []dto.SearchedProductEntity{}
+	for _, hit := range result.Hits.Hits {
+		p := &dto.SearchedProductEntity{}
+		if err := json.Unmarshal(hit.Source, p); err == nil {
+			entity = append(entity, *p)
+		}
+	}
+
+	searchRes := &dto.ProductSearchResponse{
+		Facets: &dto.SearchFacets{},
+	}
+	for _, v := range entity {
+		searchRes.Products = append(searchRes.Products, dto.SearchedProductInfo{
+			ProductID:           v.ProductID,
+			ProductCode:         v.ProductCode,
+			ProductName:         TruncateRuneString(v.ProductName, 20),
+			PriceRangeFormatted: PriceRange(v.LowestPrice, v.HighestPrice),
+			IsOnSale:            v.IsOnSale,
+			ReviewSummary: &dto.ReviewSummaryInfo{
+				ReviewCount:   v.ReviewCount,
+				AverageRating: v.AverageRating,
+			},
+			ThumbnailImageURL: v.ThumbnailImageURL,
+			CategoryName:      v.CategoryName,
+		})
+	}
+
+	var productId []string
+	for _, v := range searchRes.Products {
+		productId = append(productId, v.ProductID)
+	}
+
+	//SearchFacets ファセット検索のための情報
+	global.GVA_DB.Table("categories c").
+		Select(`c.id as category_id,c.name as category_name,count(p.id) as product_count`).
+		Joins("left join products p on p.category_id = c. id").
+		Where("p.id in ?", productId).
+		Group("c.id,c.name").Scan(&searchRes.Facets.Categories)
+
+	global.GVA_DB.Raw(`SELECT 
+		CONCAT(FORMAT(price_band * 10000,0), '円-', FORMAT(price_band * 10000 + 9999.99,0),'円') AS range_label,
+		COUNT(*) AS product_count,MAX(price) AS max_price,MIN(price) AS min_price
+		FROM (
+			SELECT pri.price, FLOOR(pri.price / 10000) AS price_band
+			FROM products p 
+			LEFT JOIN product_skus ps ON p.id = ps.product_id
+			LEFT JOIN prices pri ON ps.id = pri.sku_id
+			WHERE pri.price IS NOT NULL and p.id in ?
+		) AS price_groups
+		GROUP BY price_band
+		ORDER BY price_band`, productId).Scan(&searchRes.Facets.PriceRanges)
+
+	attrEntity := []dto.FacetAttributeGroupEntity{}
+	global.GVA_DB.Table("products p").
+		Select(`a.id as attribute_id,
+	a.name as attribute_name,ao.id as option_id,ao.value as option_value, count(p.id)`).
+		Joins("left join category_attributes ca on p.category_id = ca.category_id").
+		Joins("left join attributes a on ca.attribute_id = a.id").
+		Joins("left join attribute_options ao on ca.attribute_id = ao.attribute_id").
+		Where("p.id in ?", productId).
+		Group("a.id ,a.name ,ao.id ,ao.value").Scan(&attrEntity)
+
+	attrMap := make(map[int]*dto.FacetAttributeGroup)
+	optionMap := make(map[int]map[int]struct{})
+	for _, v := range attrEntity {
+		if _, ok := attrMap[v.AttributeID]; !ok {
+			attrMap[v.AttributeID] = &dto.FacetAttributeGroup{
+				AttributeID:   v.AttributeID,
+				AttributeName: v.AttributeName,
+				Options:       []dto.FacetOptionItem{},
+			}
+			optionMap[v.AttributeID] = make(map[int]struct{})
+		}
+		if _, ok := optionMap[v.AttributeID][v.OptionID]; !ok {
+			attrMap[v.AttributeID].Options = append(attrMap[v.AttributeID].Options, dto.FacetOptionItem{
+				OptionID:     v.OptionID,
+				OptionValue:  v.OptionValue,
+				ProductCount: v.ProductCount,
+			})
+			optionMap[v.AttributeID][v.OptionID] = struct{}{}
+		}
+	}
+	for _, v := range attrMap {
+		searchRes.Facets.Attributes = append(searchRes.Facets.Attributes, *v)
+	}
+
+	//分页
+	paginationInfo := &dto.PaginationInfo{
+		CurrentPage: page,
+		Limit:       limit,
+		TotalCount:  int(result.TotalHits()),
+		TotalPages:  int(math.Ceil(float64(result.TotalHits()) / float64(limit))),
+	}
+	searchRes.Pagination = *paginationInfo
+
+	return searchRes, err
 }

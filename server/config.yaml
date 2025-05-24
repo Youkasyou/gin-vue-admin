@@ -127,6 +127,20 @@ mssql:
     max-open-conns: 100
     singular: false
     log-zap: false
+# mysql:
+#     prefix: ""
+#     port: "3306"
+#     config: charset=utf8mb4&parseTime=True&loc=Local
+#     db-name: gva
+#     username: root
+#     password: "80813265"
+#     path: 127.0.0.1
+#     engine: ""
+#     log-mode: info
+#     max-idle-conns: 10
+#     max-open-conns: 100
+#     singular: false
+#     log-zap: false
 mysql:
     prefix: ""
     port: "3306"
@@ -134,7 +148,7 @@ mysql:
     db-name: gva
     username: root
     password: "80813265"
-    path: 127.0.0.1
+    path: host.docker.internal
     engine: ""
     log-mode: info
     max-idle-conns: 10
@@ -177,9 +191,19 @@ qiniu:
     secret-key: ""
     use-https: false
     use-cdn-domains: false
+# redis:
+#     name: ""
+#     addr: 127.0.0.1:6379
+#     password: ""
+#     db: 0
+#     useCluster: false
+#     clusterAddrs:
+#         - 172.21.0.3:7000
+#         - 172.21.0.4:7001
+#         - 172.21.0.2:7002
 redis:
     name: ""
-    addr: 127.0.0.1:6379
+    addr: 172.28.0.10:6379
     password: ""
     db: 0
     useCluster: false
@@ -189,7 +213,7 @@ redis:
         - 172.21.0.2:7002
 redis-list:
     - name: cache
-      addr: 127.0.0.1:6379
+      addr: 172.28.0.10:6379
       password: ""
       db: 0
       useCluster: false
@@ -197,6 +221,16 @@ redis-list:
         - 172.21.0.3:7000
         - 172.21.0.4:7001
         - 172.21.0.2:7002
+# redis-list:
+#     - name: cache
+#       addr: 127.0.0.1:6379
+#       password: ""
+#       db: 0
+#       useCluster: false
+#       clusterAddrs:
+#         - 172.21.0.3:7000
+#         - 172.21.0.4:7001
+#         - 172.21.0.2:7002
 sqlite:
     prefix: ""
     port: ""
@@ -239,3 +273,7 @@ zap:
     show-line: true
     log-in-console: true
     retention-day: -1
+es:
+  host: http://172.28.0.11:9200
+  username: ""
+  password: ""

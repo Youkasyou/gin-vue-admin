@@ -27,28 +27,28 @@ func (f *FavoritesApi) GetFavoriteSku(c *gin.Context) {
 	pagestr := c.DefaultQuery("page", "1")
 	page, err := strconv.Atoi(pagestr)
 	if err != nil {
-		response.BadRequest("pageパラメータは数値で指定してください。", c)
+		response.InvalidParam("pageパラメータは数値で指定してください。", c)
 		return
 	}
 	if page < 1 {
-		response.BadRequest("pageパラメータは1以上で指定してください。", c)
+		response.InvalidParam("pageパラメータは1以上で指定してください。", c)
 		return
 	}
 	limitstr := c.DefaultQuery("limit", "10")
 	limit, err := strconv.Atoi(limitstr)
 	if err != nil {
-		response.BadRequest("limitパラメータは数値で指定してください。", c)
+		response.InvalidParam("limitパラメータは数値で指定してください。", c)
 		return
 	}
 	if limit < 1 || limit > 100 {
-		response.BadRequest("limitパラメータは1から100の間で指定してください。", c)
+		response.InvalidParam("limitパラメータは1から100の間で指定してください。", c)
 		return
 	}
 	sort := c.DefaultQuery("sort", "newest")
 	switch sort {
 	case "newest", "oldest":
 	default:
-		response.BadRequest("不正なsortパラメータです。('newest', 'oldest'のいずれかを指定)", c)
+		response.InvalidParam("不正なsortパラメータです。('newest', 'oldest'のいずれかを指定)", c)
 		return
 	}
 	userId := utils.GetUserID(c)
@@ -78,10 +78,12 @@ func (f *FavoritesApi) AddFavoriteSku(c *gin.Context) {
 	userId := utils.GetUserID(c)
 	err = favoritesService.AddFavoriteSku(userId, request.SkuId)
 	if err != nil {
-		if err.Error() == "not found" {
-			response.NotFound("skuが見つかりません。", c)
+		if appErr, ok := err.(*response.AppError); ok {
+			response.JSONError(c, appErr)
 			return
 		}
+		response.JSONError(c, response.ErrInternal)
+		return
 	}
 	response.OkWithMessage("お気に入りに追加しました", c)
 }
@@ -100,14 +102,12 @@ func (f *FavoritesApi) DeleteFavoriteSku(c *gin.Context) {
 	userId := utils.GetUserID(c)
 	err := favoritesService.DeleteFavoriteSku(userId, skuId)
 	if err != nil {
-		if err.Error() == "not found sku" {
-			response.NotFound("skuが見つかりません。", c)
+		if appErr, ok := err.(*response.AppError); ok {
+			response.JSONError(c, appErr)
 			return
 		}
-		if err.Error() == "not found data" {
-			response.NotFound("お気に入りが見つかりません。", c)
-			return
-		}
+		response.JSONError(c, response.ErrInternal)
+		return
 	}
 	response.OkWithMessage("お気に入りから削除しました", c)
 }

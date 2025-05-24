@@ -25,13 +25,13 @@ func (p *ProductsApi) GetProductInfo(c *gin.Context) {
 	productCode := c.Param("productCode")
 	isValid, _ := regexp.MatchString(`^\d+$`, productCode)
 	if !isValid {
-		response.BadRequest("不正な商品識別子です。", c)
+		response.InvalidParam("不正な商品識別子です。", c)
 		return
 	}
 	if skuid != "" {
 		isValid, _ = regexp.MatchString(`^sku-\d+$`, skuid)
 		if !isValid {
-			response.BadRequest("不正なSKU ID形式です。", c)
+			response.InvalidParam("不正なSKU ID形式です。", c)
 			return
 		}
 	}
@@ -62,34 +62,34 @@ func (p *ProductsApi) GetReviews(c *gin.Context) {
 	productCode := c.Param("productCode")
 	isValid, _ := regexp.MatchString(`^\d+$`, productCode)
 	if !isValid {
-		response.BadRequest("不正な商品識別子です。", c)
+		response.InvalidParam("不正な商品識別子です。", c)
 		return
 	}
 	pagestr := c.DefaultQuery("page", "1")
 	page, err := strconv.Atoi(pagestr)
 	if err != nil {
-		response.BadRequest("pageパラメータは数値で指定してください。", c)
+		response.InvalidParam("pageパラメータは数値で指定してください。", c)
 		return
 	}
 	if page < 1 {
-		response.BadRequest("pageパラメータは1以上で指定してください。", c)
+		response.InvalidParam("pageパラメータは1以上で指定してください。", c)
 		return
 	}
 	limitstr := c.DefaultQuery("limit", "10")
 	limit, err := strconv.Atoi(limitstr)
 	if err != nil {
-		response.BadRequest("limitパラメータは数値で指定してください。", c)
+		response.InvalidParam("limitパラメータは数値で指定してください。", c)
 		return
 	}
 	if limit < 1 || limit > 100 {
-		response.BadRequest("limitパラメータは1から100の間で指定してください。", c)
+		response.InvalidParam("limitパラメータは1から100の間で指定してください。", c)
 		return
 	}
 	sort := c.DefaultQuery("sort", "newest")
 	switch sort {
 	case "newest", "oldest", "highest_rating", "lowest_rating", "most_helpful":
 	default:
-		response.BadRequest("不正なsortパラメータです。('newest', 'oldest', 'highest_rating', 'lowest_rating', 'most_helpful' のいずれかを指定)", c)
+		response.InvalidParam("不正なsortパラメータです。('newest', 'oldest', 'highest_rating', 'lowest_rating', 'most_helpful' のいずれかを指定)", c)
 		return
 	}
 	ratingstr := c.Query("rating")
@@ -97,21 +97,23 @@ func (p *ProductsApi) GetReviews(c *gin.Context) {
 	if ratingstr != "" {
 		rating, err = strconv.Atoi(ratingstr)
 		if err != nil {
-			response.BadRequest("ratingパラメータは数値で指定してください。", c)
+			response.InvalidParam("ratingパラメータは数値で指定してください。", c)
 			return
 		}
 		if rating < 1 || rating > 5 {
-			response.BadRequest("ratingパラメータは1から5の間で指定してください。", c)
+			response.InvalidParam("ratingパラメータは1から5の間で指定してください。", c)
 			return
 		}
 	}
 
 	reviews, err := productsService.GetReviews(productCode, page, limit, sort, rating)
 	if err != nil {
-		if err.Error() == "not found" {
-			response.NotFound("商品が見つかりません。", c)
+		if appErr, ok := err.(*response.AppError); ok {
+			response.JSONError(c, appErr)
 			return
 		}
+		response.JSONError(c, response.ErrInternal)
+		return
 	}
 
 	response.OkWithDetailed(gin.H{"reviews": reviews}, "获取成功", c)
@@ -133,43 +135,45 @@ func (p *ProductsApi) GetQA(c *gin.Context) {
 	productCode := c.Param("productCode")
 	isValid, _ := regexp.MatchString(`^\d+$`, productCode)
 	if !isValid {
-		response.BadRequest("不正な商品識別子です。", c)
+		response.InvalidParam("不正な商品識別子です。", c)
 		return
 	}
 	pagestr := c.DefaultQuery("page", "1")
 	page, err := strconv.Atoi(pagestr)
 	if err != nil {
-		response.BadRequest("pageパラメータは数値で指定してください。", c)
+		response.InvalidParam("pageパラメータは数値で指定してください。", c)
 		return
 	}
 	if page < 1 {
-		response.BadRequest("pageパラメータは1以上で指定してください。", c)
+		response.InvalidParam("pageパラメータは1以上で指定してください。", c)
 		return
 	}
 	limitstr := c.DefaultQuery("limit", "10")
 	limit, err := strconv.Atoi(limitstr)
 	if err != nil {
-		response.BadRequest("limitパラメータは数値で指定してください。", c)
+		response.InvalidParam("limitパラメータは数値で指定してください。", c)
 		return
 	}
 	if limit < 1 || limit > 100 {
-		response.BadRequest("limitパラメータは1から100の間で指定してください。", c)
+		response.InvalidParam("limitパラメータは1から100の間で指定してください。", c)
 		return
 	}
 	sort := c.DefaultQuery("sort", "newest")
 	switch sort {
 	case "newest", "oldest", "most_helpful":
 	default:
-		response.BadRequest("不正なsortパラメータです。('newest', 'oldest', 'most_helpful' のいずれかを指定)", c)
+		response.InvalidParam("不正なsortパラメータです。('newest', 'oldest', 'most_helpful' のいずれかを指定)", c)
 		return
 	}
 
 	QAList, err := productsService.GetQA(productCode, page, limit, sort)
 	if err != nil {
-		if err.Error() == "not found" {
-			response.NotFound("商品が見つかりません。", c)
+		if appErr, ok := err.(*response.AppError); ok {
+			response.JSONError(c, appErr)
 			return
 		}
+		response.JSONError(c, response.ErrInternal)
+		return
 	}
 
 	response.OkWithDetailed(QAList, "获取成功", c)
@@ -188,10 +192,12 @@ func (p *ProductsApi) GetImage(c *gin.Context) {
 	skuId := c.Param("skuId")
 	skuList, err := productsService.GetImage(skuId)
 	if err != nil {
-		if err.Error() == "not found" {
-			response.NotFound("skuが見つかりません。", c)
+		if appErr, ok := err.(*response.AppError); ok {
+			response.JSONError(c, appErr)
 			return
 		}
+		response.JSONError(c, response.ErrInternal)
+		return
 	}
 	response.OkWithDetailed(skuList, "获取成功", c)
 }
@@ -209,27 +215,29 @@ func (p *ProductsApi) GetRelated(c *gin.Context) {
 	productCode := c.Param("productCode")
 	isValid, _ := regexp.MatchString(`^\d+$`, productCode)
 	if !isValid {
-		response.BadRequest("不正な商品識別子です。", c)
+		response.InvalidParam("不正な商品識別子です。", c)
 		return
 	}
 
 	limitstr := c.DefaultQuery("limit", "5")
 	limit, err := strconv.Atoi(limitstr)
 	if err != nil {
-		response.BadRequest("limitパラメータは数値で指定してください。", c)
+		response.InvalidParam("limitパラメータは数値で指定してください。", c)
 		return
 	}
 	if limit < 1 || limit > 100 {
-		response.BadRequest("limitパラメータは1から100の間で指定してください。", c)
+		response.InvalidParam("limitパラメータは1から100の間で指定してください。", c)
 		return
 	}
 
 	QAList, err := productsService.GetRelated(productCode, limit)
 	if err != nil {
-		if err.Error() == "not found" {
-			response.NotFound("商品が見つかりません。", c)
+		if appErr, ok := err.(*response.AppError); ok {
+			response.JSONError(c, appErr)
 			return
 		}
+		response.JSONError(c, response.ErrInternal)
+		return
 	}
 
 	response.OkWithDetailed(QAList, "获取成功", c)
@@ -249,29 +257,98 @@ func (p *ProductsApi) GetCoordinates(c *gin.Context) {
 	productCode := c.Param("productCode")
 	isValid, _ := regexp.MatchString(`^\d+$`, productCode)
 	if !isValid {
-		response.BadRequest("不正な商品識別子です。", c)
+		response.InvalidParam("不正な商品識別子です。", c)
 		return
 	}
 
 	limitstr := c.DefaultQuery("limit", "4")
 	limit, err := strconv.Atoi(limitstr)
 	if err != nil {
-		response.BadRequest("limitパラメータは数値で指定してください。", c)
+		response.InvalidParam("limitパラメータは数値で指定してください。", c)
 		return
 	}
 	if limit < 1 || limit > 100 {
-		response.BadRequest("limitパラメータは1から100の間で指定してください。", c)
+		response.InvalidParam("limitパラメータは1から100の間で指定してください。", c)
 		return
 	}
 
 	QAList, err := productsService.GetCoordinates(productCode, limit)
 	if err != nil {
-		if err.Error() == "not found" {
-			response.NotFound("商品が見つかりません。", c)
+		if appErr, ok := err.(*response.AppError); ok {
+			response.JSONError(c, appErr)
+			return
+		}
+		response.JSONError(c, response.ErrInternal)
+		return
+	}
+
+	response.OkWithDetailed(QAList, "获取成功", c)
+
+}
+
+// Search
+// @Tags Product
+// @Summary キーワードとカテゴリ（任意）で商品を検索し、結果をページネーションで返す
+// @accept    application/json
+// @Produce   application/json
+// @Param 	keyword query string true "keyword"
+// @Param 	categoryId query int false "検索対象を絞り込むカテゴリのID"
+// @Param 	page query int false "ページ番号"
+// @Param   limit query int false "1ページあたりの件数"
+// @Param 	sort  query string false "ソート順例: 'relevance'(関連度順), 'price_asc'(価格安い順), 'price_desc'(価格高い順), 'newest'(新着順)"
+// @Success   200  "キーワードとカテゴリ（任意）で商品を検索し、結果をページネーションで返す"
+// @Router    /products/search [get]
+func (p *ProductsApi) Search(c *gin.Context) {
+	keyword := c.Query("keyword")
+	categoryIdstr := c.Query("categoryId")
+	var categoryId int
+	var err error
+	if categoryIdstr != "" {
+		categoryId, err = strconv.Atoi(categoryIdstr)
+		if err != nil {
+			response.InvalidParam("categoryIdパラメータは数値で指定してください。", c)
 			return
 		}
 	}
 
-	response.OkWithDetailed(QAList, "获取成功", c)
+	pagestr := c.DefaultQuery("page", "1")
+	page, err := strconv.Atoi(pagestr)
+	if err != nil {
+		response.InvalidParam("pageパラメータは数値で指定してください。", c)
+		return
+	}
+	if page < 1 {
+		response.InvalidParam("pageパラメータは1以上で指定してください。", c)
+		return
+	}
+	limitstr := c.DefaultQuery("limit", "20")
+	limit, err := strconv.Atoi(limitstr)
+	if err != nil {
+		response.InvalidParam("limitパラメータは数値で指定してください。", c)
+		return
+	}
+	if limit < 1 || limit > 100 {
+		response.InvalidParam("limitパラメータは1から100の間で指定してください。", c)
+		return
+	}
+	sort := c.DefaultQuery("sort", "relevance")
+	switch sort {
+	case "relevance", "price_asc", "price_desc", "newest":
+	default:
+		response.InvalidParam("不正なsortパラメータです。('relevance', 'price_asc', 'price_desc','newest' のいずれかを指定)", c)
+		return
+	}
+
+	searchResult, err := productsService.Search(keyword, categoryId, page, limit, sort)
+	if err != nil {
+		if appErr, ok := err.(*response.AppError); ok {
+			response.JSONError(c, appErr)
+			return
+		}
+		response.JSONError(c, response.ErrInternal)
+		return
+	}
+
+	response.OkWithDetailed(searchResult, "获取成功", c)
 
 }

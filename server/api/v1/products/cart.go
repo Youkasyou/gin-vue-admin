@@ -40,21 +40,18 @@ func (cart *CartApi) AddCart(c *gin.Context) {
 		return
 	}
 	if request.Quantity < 1 {
-		response.BadRequest("quantityパラメータは1以上で指定してください。", c)
+		response.InvalidParam("quantityパラメータは1以上で指定してください。", c)
 		return
 	}
 	userId := utils.GetUserID(c)
 	err = cartService.AddCart(userId, request.SkuId, request.Quantity)
 	if err != nil {
-		if err.Error() == "not found" {
-			response.NotFound("skuが見つかりません。", c)
+		if appErr, ok := err.(*response.AppError); ok {
+			response.JSONError(c, appErr)
 			return
 		}
-
-		if err.Error() == "ErrInsufficientStock" {
-			response.Unprocessable("在庫不足", c)
-			return
-		}
+		response.JSONError(c, response.ErrInternal)
+		return
 	}
 	response.OkWithMessage("カートに追加しました", c)
 }
@@ -78,21 +75,18 @@ func (cart *CartApi) SetCart(c *gin.Context) {
 		return
 	}
 	if request.Quantity < 1 {
-		response.BadRequest("quantityパラメータは1以上で指定してください。", c)
+		response.InvalidParam("quantityパラメータは1以上で指定してください。", c)
 		return
 	}
 	userId := utils.GetUserID(c)
 	err = cartService.SetCart(userId, skuId, request.Quantity)
 	if err != nil {
-		if err.Error() == "not found" {
-			response.NotFound("skuが見つかりません。", c)
+		if appErr, ok := err.(*response.AppError); ok {
+			response.JSONError(c, appErr)
 			return
 		}
-
-		if err.Error() == "ErrInsufficientStock" {
-			response.Unprocessable("在庫不足", c)
-			return
-		}
+		response.JSONError(c, response.ErrInternal)
+		return
 	}
 	response.OkWithMessage("商品の数量を変更しました", c)
 }
@@ -111,10 +105,12 @@ func (cart *CartApi) DeleteCart(c *gin.Context) {
 	userId := utils.GetUserID(c)
 	err := cartService.DeleteCart(userId, skuId)
 	if err != nil {
-		if err.Error() == "ErrCartItemNotFound" {
-			response.NotFound("カートに商品がない", c)
+		if appErr, ok := err.(*response.AppError); ok {
+			response.JSONError(c, appErr)
 			return
 		}
+		response.JSONError(c, response.ErrInternal)
+		return
 	}
 	response.OkWithMessage("商品を削除しました", c)
 }

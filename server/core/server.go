@@ -28,6 +28,10 @@ func RunWindowsServer() {
 			zap.L().Error(fmt.Sprintf("%+v", err))
 		}
 	}
+
+	// 初始化 Elasticsearch
+	global.GVA_ES = InitElasticSearch()
+
 	// 从db加载jwt数据
 	if global.GVA_DB != nil {
 		system.LoadAll()

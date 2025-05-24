@@ -2288,6 +2288,83 @@
                 }
             }
         },
+        "/categories/tree": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Category"
+                ],
+                "summary": "全カテゴリの階層構造リスト（ナビゲーション用）を取得する",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "max depth",
+                        "name": "max_depth",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "全カテゴリの階層構造リスト（ナビゲーション用）を取得する"
+                    }
+                }
+            }
+        },
+        "/categories/{categoryId}": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Category"
+                ],
+                "summary": "指定されたカテゴリIDまたはコードの情報を取得（サブカテゴリ、関連属性等",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "category Id",
+                        "name": "categoryId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "include_product_count",
+                        "name": "include_product_count",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "include_attributes",
+                        "name": "include_attributes",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "指定されたカテゴリIDまたはコードの情報を取得（サブカテゴリ、関連属性等"
+                    }
+                }
+            }
+        },
         "/customer/customer": {
             "get": {
                 "security": [
@@ -4235,6 +4312,258 @@
                 }
             }
         },
+        "/orders": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Orders"
+                ],
+                "summary": "自身の注文履歴をページネーション付きで取得する",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ページ番号 (1始まり)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "1ページあたりのQ\u0026A件数",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "特定の注文ステータスで絞り込む場合（例: payment_confirmed,pending_payment, shipped,cancelled,delivered,processing）",
+                        "name": "status",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "自身の注文履歴をページネーション付きで取得する"
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Orders"
+                ],
+                "summary": "注文を確定し、Pay.jpテストモードで支払い処理を実行、注文データを保存",
+                "parameters": [
+                    {
+                        "description": "注文確定APIのリクエスト",
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.CreateOrderRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "注文を確定し、Pay.jpテストモードで支払い処理を実行、注文データを保存"
+                    }
+                }
+            }
+        },
+        "/orders/checkout/apply-coupon": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Orders"
+                ],
+                "summary": "指定クーポンを現在の注文（カート）に適用する",
+                "parameters": [
+                    {
+                        "description": "クーポン適用APIのリクエストボディ",
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.ApplyCouponRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "指定クーポンを現在の注文（カート）に適用する"
+                    }
+                }
+            }
+        },
+        "/orders/checkout/info": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Orders"
+                ],
+                "summary": "現在のカート合計等に応じた利用可能クーポン・ポイント情報を取得",
+                "responses": {
+                    "200": {
+                        "description": "現在のカート合計等に応じた利用可能クーポン・ポイント情報を取得"
+                    }
+                }
+            }
+        },
+        "/orders/checkout/remove-coupon": {
+            "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Orders"
+                ],
+                "summary": "適用中クーポンを解除する",
+                "responses": {
+                    "200": {
+                        "description": "適用中クーポンを解除する"
+                    }
+                }
+            }
+        },
+        "/orders/checkout/remove-points": {
+            "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Orders"
+                ],
+                "summary": "利用中ポイントを解除する",
+                "responses": {
+                    "200": {
+                        "description": "利用中ポイントを解除する"
+                    }
+                }
+            }
+        },
+        "/orders/checkout/use-points": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Orders"
+                ],
+                "summary": "指定ポイント数を現在の注文（カート）に利用する",
+                "parameters": [
+                    {
+                        "description": "ポイント利用APIのリクエストボディ",
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UsePointsRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "指定ポイント数を現在の注文（カート）に利用する"
+                    }
+                }
+            }
+        },
+        "/orders/{orderId}": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Orders"
+                ],
+                "summary": "指定した注文IDの詳細情報を取得する",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "注文のID",
+                        "name": "orderId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "指定した注文IDの詳細情報を取得する"
+                    }
+                }
+            }
+        },
         "/payments/methods": {
             "get": {
                 "security": [
@@ -4493,6 +4822,58 @@
                 "responses": {
                     "200": {
                         "description": "レビューリスト、集計情報、ページネーション情報を返す"
+                    }
+                }
+            }
+        },
+        "/products/search": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Product"
+                ],
+                "summary": "キーワードとカテゴリ（任意）で商品を検索し、結果をページネーションで返す",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "keyword",
+                        "name": "keyword",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "検索対象を絞り込むカテゴリのID",
+                        "name": "categoryId",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "ページ番号",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "1ページあたりの件数",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "ソート順例: 'relevance'(関連度順), 'price_asc'(価格安い順), 'price_desc'(価格高い順), 'newest'(新着順)",
+                        "name": "sort",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "キーワードとカテゴリ（任意）で商品を検索し、結果をページネーションで返す"
                     }
                 }
             }
@@ -7538,6 +7919,20 @@
                 }
             }
         },
+        "config.ES": {
+            "type": "object",
+            "properties": {
+                "host": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
         "config.Excel": {
             "type": "object",
             "properties": {
@@ -8038,6 +8433,14 @@
                 "email": {
                     "$ref": "#/definitions/github_com_flipped-aurora_gin-vue-admin_server_config.Email"
                 },
+                "es": {
+                    "description": "Elasticsearch",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/config.ES"
+                        }
+                    ]
+                },
                 "excel": {
                     "$ref": "#/definitions/config.Excel"
                 },
@@ -8335,6 +8738,32 @@
                 }
             }
         },
+        "dto.ApplyCouponRequest": {
+            "type": "object",
+            "required": [
+                "coupon_code"
+            ],
+            "properties": {
+                "coupon_code": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.CreateOrderRequest": {
+            "type": "object",
+            "required": [
+                "payjp_token"
+            ],
+            "properties": {
+                "notes": {
+                    "type": "string"
+                },
+                "payjp_token": {
+                    "description": "クレジットカード支払いの場合は必須",
+                    "type": "string"
+                }
+            }
+        },
         "dto.ShippingAddressInput": {
             "type": "object",
             "required": [
@@ -8376,6 +8805,18 @@
                 "recipient_name": {
                     "type": "string",
                     "maxLength": 100
+                }
+            }
+        },
+        "dto.UsePointsRequest": {
+            "type": "object",
+            "required": [
+                "points_to_use"
+            ],
+            "properties": {
+                "points_to_use": {
+                    "type": "integer",
+                    "minimum": 1
                 }
             }
         },

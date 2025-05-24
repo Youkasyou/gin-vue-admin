@@ -111,6 +111,15 @@ definitions:
       mount-point:
         type: string
     type: object
+  config.ES:
+    properties:
+      host:
+        type: string
+      password:
+        type: string
+      username:
+        type: string
+    type: object
   config.Excel:
     properties:
       dir:
@@ -467,6 +476,10 @@ definitions:
         type: array
       email:
         $ref: '#/definitions/github_com_flipped-aurora_gin-vue-admin_server_config.Email'
+      es:
+        allOf:
+        - $ref: '#/definitions/config.ES'
+        description: Elasticsearch
       excel:
         $ref: '#/definitions/config.Excel'
       hua-wei-obs:
@@ -675,6 +688,23 @@ definitions:
         description: 栈名
         type: string
     type: object
+  dto.ApplyCouponRequest:
+    properties:
+      coupon_code:
+        type: string
+    required:
+    - coupon_code
+    type: object
+  dto.CreateOrderRequest:
+    properties:
+      notes:
+        type: string
+      payjp_token:
+        description: クレジットカード支払いの場合は必須
+        type: string
+    required:
+    - payjp_token
+    type: object
   dto.ShippingAddressInput:
     properties:
       address_line1:
@@ -707,6 +737,14 @@ definitions:
     - postal_code
     - prefecture
     - recipient_name
+    type: object
+  dto.UsePointsRequest:
+    properties:
+      points_to_use:
+        minimum: 1
+        type: integer
+    required:
+    - points_to_use
     type: object
   example.ExaAttachmentCategory:
     properties:
@@ -3291,6 +3329,53 @@ paths:
       summary: 获取权限列表
       tags:
       - Casbin
+  /categories/{categoryId}:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: category Id
+        in: path
+        name: categoryId
+        required: true
+        type: integer
+      - description: include_product_count
+        in: query
+        name: include_product_count
+        type: boolean
+      - description: include_attributes
+        in: query
+        name: include_attributes
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 指定されたカテゴリIDまたはコードの情報を取得（サブカテゴリ、関連属性等
+      security:
+      - ApiKeyAuth: []
+      summary: 指定されたカテゴリIDまたはコードの情報を取得（サブカテゴリ、関連属性等
+      tags:
+      - Category
+  /categories/tree:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: max depth
+        in: query
+        name: max_depth
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 全カテゴリの階層構造リスト（ナビゲーション用）を取得する
+      security:
+      - ApiKeyAuth: []
+      summary: 全カテゴリの階層構造リスト（ナビゲーション用）を取得する
+      tags:
+      - Category
   /customer/customer:
     delete:
       consumes:
@@ -4407,6 +4492,157 @@ paths:
       summary: 更新菜单
       tags:
       - Menu
+  /orders:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: ページ番号 (1始まり)
+        in: query
+        name: page
+        type: integer
+      - description: 1ページあたりのQ&A件数
+        in: query
+        name: limit
+        type: integer
+      - description: '特定の注文ステータスで絞り込む場合（例: payment_confirmed,pending_payment, shipped,cancelled,delivered,processing）'
+        in: query
+        name: status
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 自身の注文履歴をページネーション付きで取得する
+      security:
+      - ApiKeyAuth: []
+      summary: 自身の注文履歴をページネーション付きで取得する
+      tags:
+      - Orders
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 注文確定APIのリクエスト
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateOrderRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 注文を確定し、Pay.jpテストモードで支払い処理を実行、注文データを保存
+      security:
+      - ApiKeyAuth: []
+      summary: 注文を確定し、Pay.jpテストモードで支払い処理を実行、注文データを保存
+      tags:
+      - Orders
+  /orders/{orderId}:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: 注文のID
+        in: path
+        name: orderId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 指定した注文IDの詳細情報を取得する
+      security:
+      - ApiKeyAuth: []
+      summary: 指定した注文IDの詳細情報を取得する
+      tags:
+      - Orders
+  /orders/checkout/apply-coupon:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: クーポン適用APIのリクエストボディ
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ApplyCouponRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 指定クーポンを現在の注文（カート）に適用する
+      security:
+      - ApiKeyAuth: []
+      summary: 指定クーポンを現在の注文（カート）に適用する
+      tags:
+      - Orders
+  /orders/checkout/info:
+    get:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 現在のカート合計等に応じた利用可能クーポン・ポイント情報を取得
+      security:
+      - ApiKeyAuth: []
+      summary: 現在のカート合計等に応じた利用可能クーポン・ポイント情報を取得
+      tags:
+      - Orders
+  /orders/checkout/remove-coupon:
+    delete:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 適用中クーポンを解除する
+      security:
+      - ApiKeyAuth: []
+      summary: 適用中クーポンを解除する
+      tags:
+      - Orders
+  /orders/checkout/remove-points:
+    delete:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 利用中ポイントを解除する
+      security:
+      - ApiKeyAuth: []
+      summary: 利用中ポイントを解除する
+      tags:
+      - Orders
+  /orders/checkout/use-points:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: ポイント利用APIのリクエストボディ
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UsePointsRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 指定ポイント数を現在の注文（カート）に利用する
+      security:
+      - ApiKeyAuth: []
+      summary: 指定ポイント数を現在の注文（カート）に利用する
+      tags:
+      - Orders
   /payments/methods:
     get:
       consumes:
@@ -4572,6 +4808,41 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: レビュー一覧取得
+      tags:
+      - Product
+  /products/search:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: keyword
+        in: query
+        name: keyword
+        required: true
+        type: string
+      - description: 検索対象を絞り込むカテゴリのID
+        in: query
+        name: categoryId
+        type: integer
+      - description: ページ番号
+        in: query
+        name: page
+        type: integer
+      - description: 1ページあたりの件数
+        in: query
+        name: limit
+        type: integer
+      - description: 'ソート順例: ''relevance''(関連度順), ''price_asc''(価格安い順), ''price_desc''(価格高い順),
+          ''newest''(新着順)'
+        in: query
+        name: sort
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: キーワードとカテゴリ（任意）で商品を検索し、結果をページネーションで返す
+      summary: キーワードとカテゴリ（任意）で商品を検索し、結果をページネーションで返す
       tags:
       - Product
   /shipping-addresses:

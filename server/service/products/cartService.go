@@ -7,6 +7,7 @@ import (
 
 	"github.com/flipped-aurora/gin-vue-admin/server/global"
 	"github.com/flipped-aurora/gin-vue-admin/server/model/common/dto"
+	"github.com/flipped-aurora/gin-vue-admin/server/model/common/response"
 	"github.com/flipped-aurora/gin-vue-admin/server/model/products"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -141,7 +142,7 @@ func (cartService *CartService) AddCart(id uint, skuId string, quantity int) (er
 	}
 	if !EXISTS {
 		fmt.Println("未找到该sku")
-		return errors.New("not found")
+		return response.ErrNotFound
 	}
 
 	var inventory int
@@ -153,7 +154,7 @@ func (cartService *CartService) AddCart(id uint, skuId string, quantity int) (er
 		return
 	}
 	if inventory < quantity {
-		return errors.New("ErrInsufficientStock")
+		return response.ErrInsufficientStock
 	}
 
 	item := map[string]interface{}{
@@ -185,7 +186,7 @@ func (cartService *CartService) SetCart(id uint, skuId string, quantity int) (er
 	}
 	if !EXISTS {
 		fmt.Println("未找到该sku")
-		return errors.New("not found")
+		return response.ErrNotFound
 	}
 
 	var inventory int
@@ -222,7 +223,7 @@ func (cartService *CartService) SetCart(id uint, skuId string, quantity int) (er
 func (cartService *CartService) DeleteCart(id uint, skuId string) (err error) {
 	result := global.GVA_DB.Exec(`DELETE FROM user_cart_items WHERE user_id = ? AND sku_id = ?`, id, skuId)
 	if result.RowsAffected == 0 {
-		return errors.New("ErrCartItemNotFound")
+		return response.ErrNotFound
 	}
 
 	return

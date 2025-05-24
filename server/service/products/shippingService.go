@@ -1,12 +1,12 @@
 package products
 
 import (
-	"errors"
 	"fmt"
 	"time"
 
 	"github.com/flipped-aurora/gin-vue-admin/server/global"
 	"github.com/flipped-aurora/gin-vue-admin/server/model/common/dto"
+	"github.com/flipped-aurora/gin-vue-admin/server/model/common/response"
 )
 
 type ShippingService struct{}
@@ -65,7 +65,7 @@ func (shippingService *ShippingService) SetAddress(id uint, addrId uint64, reqAd
 	}
 	if !EXISTS {
 		fmt.Println("未找到该地址")
-		return nil, errors.New("not found")
+		return nil, response.ErrNotFound
 	}
 
 	err = global.GVA_DB.Table("user_shipping_addresses").
@@ -85,7 +85,7 @@ func (shippingService *ShippingService) SetAddress(id uint, addrId uint64, reqAd
 func (shippingService *ShippingService) DeleteAddress(id uint, addrId uint64) (err error) {
 	result := global.GVA_DB.Exec(`DELETE FROM user_shipping_addresses WHERE user_id = ? AND id = ?`, id, addrId)
 	if result.RowsAffected == 0 {
-		return errors.New("ErrCartItemNotFound")
+		return response.ErrNotFound
 	}
 	return
 }
